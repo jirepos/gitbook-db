@@ -195,3 +195,34 @@ order by에 reg_dt를 desc로 설정해애 한다.
     order by m.reg_dt desc , m.post_id desc
     limit 0, 4
 ```
+
+
+## Auto Commit 설정 확인 
+```sql
+show variables like 'autocommit%';
+```
+mysqld에 적용하고 싶으면 my.ini 파일에 다음과 같이 추가한다. 
+```shell
+[mysqld]
+autocommit=0
+```
+
+## basedir 확인
+```sql
+SHOW VARIABLES WHERE Variable_Name LIKE "%dir";
+```
+## my.ini 파일 
+Windows에서는 basedir 아래의  data 폴더에 my.ini 파일이 있다. 
+
+
+## Mariadb 서비스 확인 
+Ctrl + Shift + ESC 누른다. 
+작업관리자에서 서비스 탭에서 MariaDB를 찾는다. 
+거기서 중지 및 시작을 할 수 있다. 
+
+
+
+## CharacterSet 확인 
+```sql
+SHOW VARIABLES WHERE Variable_Name LIKE "C%";
+```
