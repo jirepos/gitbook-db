@@ -7,3 +7,5 @@
 * [Oracle 쿼리 활용](oracle-03.md)
 * [Query 이해 및 활용](query-01.md)
 * [MSSQL 정리](mssql-01.md) 
+* [MongoDB 설치](mongo-01.md)
+* [MongoDB 이해하기](mongo-02.md)
