@@ -1,6 +1,185 @@
 # MariaDB 설정
 
+
+## 루트로 작업하기 
+ubuntu에서 root로 작업하기 위해서는 다음과 같이 입력한다. 
+```shell
+sudo su 
+```
+
+## 설치 
+업데이트 패키지가 있는지 체크하고 설치된 패키지를 업데이트 한다.
+```shell
+sudo apt update & sudo apt-get -y upgrade
+```
+MariaDB 설치 
+```shell
+sudo apt-get install -y mariadb-server
+```
+
+설치하고 나면 자동으로 프로세스가 떠 있다
+```shell
+root@instance-20210604-1640:~# ps -ef | grep mysql
+mysql    1038167       1  0 02:47 ?        00:00:00 /usr/sbin/mysqld
+root     1038396 1024963  0 02:53 pts/1    00:00:00 grep --color=auto mysql
+```
+
+시스템 계정 = mysql ID를 대응시켜서 사용하는 것이 추세라고 합니다. 그래서 sudo를 통해 root 권한이 있음을 증명하여 mysql에 접속한다면 비밀번호를 입력할 필요가 없다. 그러므로 아래 명령어를 통해 접속합니다.
+```shell
+sudo mysql
+```
+그럼 다음과 같이 mysql에 접속할 수 있다. 
+```shell
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 36
+Server version: 10.3.34-MariaDB-0ubuntu0.20.04.1 Ubuntu 20.04
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]>
+```
+use를 사용하여 db를 변경한다. 
+```shell
+root@instance-20210604-1640:~# sudo mysql
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 37
+Server version: 10.3.34-MariaDB-0ubuntu0.20.04.1 Ubuntu 20.04
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]> use mysql
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+MariaDB [mysql]>
+```
+
+
+## 서비스 확인
+apt-get으로 설치하면 서비스로 설치가 된다.  다음 명령으로 서비스를 확인한다.
+
+
+```shell
+systemctl list-units --type service
+```
+
+mariadb.service를 확인할 수 있다. 
+```shell
+lvm2-monitor.service                                       loaded active exited  Monitoring of LVM2 mirrors, snapshots etc. using d>
+  mariadb.service                                            loaded active running MariaDB 10.3.34 database server                   >
+  netfilter-persistent.service                               loaded active exited  netfilter persistent configuration                >
+  networkd-dispatcher.service                                loaded active running Dispatcher daemon for systemd-networkd
+```
+
+
+## 서비스 중단 
+
+systemctl 명령어로 서비스를 중지하거나 다시 시작할 수 있다. 
+
+* start 시작
+* stop 중지 
+* status 상태 확인
+* restart 서비스 재시작 
+* enable 시스템이 재부팅하면 자동으로 서비스 실행하도록 등록
+
+
+다음 명령어로 상태를 학인해 본다.
+```shell
+systemctl status mariadb.service
+```
+
+다음과 같이 결과가 출력된다. 
+
+```shell
+root@instance-20210604-1640:~# systemctl status mysqld.service
+● mariadb.service - MariaDB 10.3.34 database server
+     Loaded: loaded (/lib/systemd/system/mariadb.service; enabled; vendor preset: enabled)
+     Active: active (running) since Wed 2022-03-02 02:47:49 UTC; 25min ago
+       Docs: man:mysqld(8)
+             https://mariadb.com/kb/en/library/systemd/
+   Main PID: 1038167 (mysqld)
+     Status: "Taking your SQL requests now..."
+      Tasks: 30 (limit: 1117)
+     Memory: 64.0M
+     CGroup: /system.slice/mariadb.service
+             └─1038167 /usr/sbin/mysqld
+```
+
+중지하고 다시 시작해 보자.
+```shell
+systemctl stop mariadb.service
+systemctl start mariadb.service
+```
+
+## MariaDB 삭제 
+
+다음 명령어로 삭제할 수 있다. 
+```shell
+sudo apt-get purge mariadb-server
+```
+
+## 설정 파일 변경 
+/etc/mysql/conf.d 아래에 my.cnf 파일을 만들고 다음과 같이 입력한다.
+```shell
+[mysqld]
+character-set-client-handshake = FALSE
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+lower_case_table_names = 1
+autocommit=0
+bind-address            = 0.0.0.0
+
+
+[client]
+default-character-set = utf8mb4
+
+[mysql]
+
+default-character-set = utf8mb4
+
+[mysqldump]
+default-character-set = utf8mb4
+```
+
+설정파일을 변경하고 서비스를 재시작한다. 
+
+## root 비밀번호 설정
+
+root 비밀번호 설정하고 접속해보자.  다음의 sql문을 실행한다.
+```shell
+
+MariaDB [mysql]> update user set password = password('password') where user = 'root';
+Query OK, 1 row affected (0.000 sec)
+```
+
+그리고 바로 적용되도록  다음을 실행한다. 
+```shell
+flush privileges; 
+```
+
+## 접속확인
+지금 DB 서버가 외부 접속을 허용하는 지 확인을 해보아야한다. netsat -tnlp 명령어로 해당하는 포트(3306은 마리아DB와 MySQL 서버의 Default 포트이다.)
+
+```shell
+netstat -tnlp
+```
+외부에서 접속이 안될 때는   /etc/mysql/mariadb.conf.d 디렉터리로 이동한다. 여기서 50-server.cnf 파일을 수정해야한다. bind-address를 주석처리한다.
+
+```shell
+# Instead of skip-networking the default is now to listen only on
+# localhost which is more compatible and is not less secure.
+#bind-address            = 127.0.0.1
+```
+
+
+
 ## Database 생성
+
 
 ```sql
 CREATE DATABASE lattedb CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
